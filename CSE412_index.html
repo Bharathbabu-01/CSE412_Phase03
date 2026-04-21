@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ParkUp - Parking Spot Manager</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background-color: #f2f2f2;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    h2 {
+      color: #555;
+      margin-top: 30px;
+    }
+
+    input, select {
+      padding: 6px;
+      margin: 4px;
+      width: 160px;
+    }
+
+    button {
+      padding: 7px 14px;
+      margin: 4px;
+      background-color: green;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .deletebtn {
+      background-color: red;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 10px;
+      background-color: white;
+    }
+
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #ddd;
+    }
+
+    .successmsg {
+      margin-top: 8px;
+      font-size: 14px;
+      color: green;
+    }
+
+    .errormsg {
+      margin-top: 8px;
+      font-size: 14px;
+      color: red;
+    }
+
+    hr {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ParkUp - Parking Spot Manager</h1>
+  <p>CSE 412 Phase 03 | Group 01</p>
+
+  <hr>
+
+  <!-- show all spots from db -->
+  <h2>All Parking Spots</h2>
+  <button onclick="loadSpots()">Load / Refresh</button>
+  <table>
+    <thead>
+      <tr>
+        <th>SpotID</th>
+        <th>LotID</th>
+        <th>SpotLabel</th>
+        <th>SpotType</th>
+        <th>IsActive</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="spotsList">
+      <tr><td colspan="7">Click Load to see data</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- add a new spot -->
+  <h2>Add New Parking Spot</h2>
+  <div>
+    <input type="number" id="newSpotID" placeholder="SpotID" />
+    <input type="number" id="newLotID" placeholder="LotID" />
+    <input type="text" id="newLabel" placeholder="SpotLabel (e.g. A06)" />
+    <select id="newType">
+      <option value="">SpotType</option>
+      <option value="Regular">Regular</option>
+      <option value="EV">EV</option>
+      <option value="Handicap">Handicap</option>
+      <option value="Reserved">Reserved</option>
+    </select>
+    <select id="newActive">
+      <option value="true">IsActive: true</option>
+      <option value="false">IsActive: false</option>
+    </select>
+    <select id="newStatus">
+      <option value="Available">Available</option>
+      <option value="Occupied">Occupied</option>
+      <option value="Reserved">Reserved</option>
+      <option value="OutOfService">OutOfService</option>
+    </select>
+    <br>
+    <button onclick="addSpot()">Add Spot</button>
+    <div id="addResult"></div>
+  </div>
+
+  <hr>
+
+  <!-- update existing spot -->
+  <h2>Update Parking Spot</h2>
+  <div>
+    <input type="number" id="editID" placeholder="SpotID" />
+    <input type="number" id="editLot" placeholder="LotID" />
+    <input type="text" id="editLabel" placeholder="SpotLabel" />
+    <select id="editType">
+      <option value="">SpotType</option>
+      <option value="Regular">Regular</option>
+      <option value="EV">EV</option>
+      <option value="Handicap">Handicap</option>
+      <option value="Reserved">Reserved</option>
+    </select>
+    <select id="editActive">
+      <option value="true">IsActive: true</option>
+      <option value="false">IsActive: false</option>
+    </select>
+    <select id="editStatus">
+      <option value="Available">Available</option>
+      <option value="Occupied">Occupied</option>
+      <option value="Reserved">Reserved</option>
+      <option value="OutOfService">OutOfService</option>
+    </select>
+    <br>
+    <button onclick="updateSpot()">Update Spot</button>
+    <div id="updateResult"></div>
+  </div>
+
+  <hr>
+
+  <!-- delete spot by id -->
+  <h2>Delete Parking Spot</h2>
+  <div>
+    <input type="number" id="deleteID" placeholder="SpotID to delete" />
+    <button class="deletebtn" onclick="removeSpot()">Delete Spot</button>
+    <div id="deleteResult"></div>
+  </div>
+
+<script>
+  var url = "http://127.0.0.1:5000";
+
+  function loadSpots() {
+    fetch(url + "/spots")
+    .then(function(res) {
+      return res.json();
+    })
+    .then(function(data) {
+      var tbody = document.getElementById("spotsList");
+      var html = "";
+      for (var i = 0; i < data.length; i++) {
+        var s = data[i];
+        html += "<tr>";
+        html += "<td>" + s.spotid + "</td>";
+        html += "<td>" + s.lotid + "</td>";
+        html += "<td>" + s.spotlabel + "</td>";
+        html += "<td>" + s.spottype + "</td>";
+        html += "<td>" + s.isactive + "</td>";
+        html += "<td>" + s.status + "</td>";
+        html += "<td>";
+        html += "<button onclick=\"fillEdit(" + s.spotid + ", " + s.lotid + ", '" + s.spotlabel + "', '" + s.spottype + "', '" + s.isactive + "', '" + s.status + "')\">Edit</button>";
+        html += "<button class=\"deletebtn\" onclick=\"quickRemove(" + s.spotid + ")\">Delete</button>";
+        html += "</td></tr>";
+      }
+      tbody.innerHTML = html;
+    });
+  }
+
+  function addSpot() {
+    var sid = parseInt(document.getElementById("newSpotID").value);
+    var lid = parseInt(document.getElementById("newLotID").value);
+    var label = document.getElementById("newLabel").value;
+    var type = document.getElementById("newType").value;
+    var active = document.getElementById("newActive").value;
+    var status = document.getElementById("newStatus").value;
+
+    if (!sid || !lid || label == "" || type == "") {
+      document.getElementById("addResult").className = "errormsg";
+      document.getElementById("addResult").innerHTML = "Please fill in all fields.";
+      return;
+    }
+
+    fetch(url + "/spots", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ spotid: sid, lotid: lid, spotlabel: label, spottype: type, isactive: active, status: status })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(result) {
+      if (result.spotid) {
+        document.getElementById("addResult").className = "successmsg";
+        document.getElementById("addResult").innerHTML = "Spot added! ID: " + result.spotid;
+        loadSpots();
+      } else {
+        document.getElementById("addResult").className = "errormsg";
+        document.getElementById("addResult").innerHTML = "Error: " + result.error;
+      }
+    })
+    .catch(function(e) {
+      document.getElementById("addResult").innerHTML = "Could not connect.";
+    });
+  }
+
+  function fillEdit(id, lotid, label, spottype, active, status) {
+    document.getElementById("editID").value = id;
+    document.getElementById("editLabel").value = label;
+    document.getElementById("editLot").value = lotid;
+    document.getElementById("editStatus").value = status;
+    document.getElementById("editType").value = spottype;
+    document.getElementById("editActive").value = active;
+  }
+
+  function updateSpot() {
+    var id = document.getElementById("editID").value;
+    if (id == "") {
+      document.getElementById("updateResult").className = "errormsg";
+      document.getElementById("updateResult").innerHTML = "Enter a SpotID first.";
+      return;
+    }
+
+    var lotid = parseInt(document.getElementById("editLot").value);
+    var label = document.getElementById("editLabel").value;
+    var type = document.getElementById("editType").value;
+    var active = document.getElementById("editActive").value;
+    var status = document.getElementById("editStatus").value;
+
+    fetch(url + "/spots/" + id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lotid: lotid, spotlabel: label, spottype: type, isactive: active, status: status })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(result) {
+      if (result.message) {
+        document.getElementById("updateResult").className = "successmsg";
+        document.getElementById("updateResult").innerHTML = "Updated successfully.";
+        loadSpots();
+      } else {
+        document.getElementById("updateResult").className = "errormsg";
+        document.getElementById("updateResult").innerHTML = "Error: " + result.error;
+      }
+    });
+  }
+
+  function removeSpot() {
+    var id = document.getElementById("deleteID").value;
+    if (id == "") {
+      document.getElementById("deleteResult").className = "errormsg";
+      document.getElementById("deleteResult").innerHTML = "Enter a SpotID.";
+      return;
+    }
+    if (!confirm("Delete spot " + id + "?")) {
+      return;
+    }
+    quickRemove(id);
+  }
+
+  function quickRemove(id) {
+    fetch(url + "/spots/" + id, { method: "DELETE" })
+    .then(function(res) { return res.json(); })
+    .then(function(result) {
+      if (result.message) {
+        document.getElementById("deleteResult").className = "successmsg";
+        document.getElementById("deleteResult").innerHTML = "Spot " + id + " deleted.";
+        loadSpots();
+      } else {
+        document.getElementById("deleteResult").className = "errormsg";
+        document.getElementById("deleteResult").innerHTML = "Error: " + result.error;
+      }
+    });
+  }
+
+</script>
+
+</body>
+</html>
