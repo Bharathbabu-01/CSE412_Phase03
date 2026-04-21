@@ -1,65 +1,70 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import psycopg2
-import psycopg2.extras
 
 app = Flask(__name__)
 CORS(app)
 
-DB_CONFIG = {
-    "host":     "localhost",
-    "database": "parkup_db",
-    "user":     "postgres",
-    "password": "#Bharath01usa",
-    "port":     5432
-}
+# database connection info
+db_host = "localhost"
+db_name = "parkup_db"
+db_user = "postgres"
+db_pass = "#Bharath01usa"
+db_port = 5432
 
 def get_conn():
-    return psycopg2.connect(**DB_CONFIG)
+    conn = psycopg2.connect(host=db_host, database=db_name, user=db_user, password=db_pass, port=db_port)
+    return conn
 
-
-# READ - Get all parking spots
+# get all parking spots
 @app.route('/spots', methods=['GET'])
 def get_spots():
-    try:
-        conn = get_conn()
-        cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute("SELECT SpotID as spotid, LotID as lotid, SpotLabel as spotlabel, SpotType as spottype, IsActive as isactive, Status as status FROM ParkingSpot ORDER BY SpotID;")
-        rows = cur.fetchall()
-        cur.close()
-        conn.close()
-        return jsonify([dict(r) for r in rows])
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT SpotID, LotID, SpotLabel, SpotType, IsActive, Status FROM ParkingSpot ORDER BY SpotID;")
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
 
+    result = []
+    for r in rows:
+        spot = {
+            "spotid": r[0],
+            "lotid": r[1],
+            "spotlabel": r[2],
+            "spottype": r[3],
+            "isactive": r[4],
+            "status": r[5]
+        }
+        result.append(spot)
 
-# CREATE - Insert a new parking spot
+    return jsonify(result)
+
+# add new parking spot
 @app.route('/spots', methods=['POST'])
 def create_spot():
     data = request.get_json()
     try:
         conn = get_conn()
-        cur  = conn.cursor()
+        cur = conn.cursor()
         cur.execute(
-            "INSERT INTO ParkingSpot (SpotID, LotID, SpotLabel, SpotType, IsActive, Status) VALUES (%s, %s, %s, %s, %s, %s) RETURNING SpotID;",
+            "INSERT INTO ParkingSpot (SpotID, LotID, SpotLabel, SpotType, IsActive, Status) VALUES (%s, %s, %s, %s, %s, %s);",
             (data['spotid'], data['lotid'], data['spotlabel'], data['spottype'], data['isactive'], data['status'])
         )
-        new_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
         conn.close()
-        return jsonify({"spotid": new_id}), 201
+        return jsonify({"spotid": data['spotid']}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-# UPDATE - Edit an existing parking spot
+# update a parking spot
 @app.route('/spots/<int:spot_id>', methods=['PUT'])
 def update_spot(spot_id):
     data = request.get_json()
     try:
         conn = get_conn()
-        cur  = conn.cursor()
+        cur = conn.cursor()
         cur.execute(
             "UPDATE ParkingSpot SET LotID=%s, SpotLabel=%s, SpotType=%s, IsActive=%s, Status=%s WHERE SpotID=%s;",
             (data['lotid'], data['spotlabel'], data['spottype'], data['isactive'], data['status'], spot_id)
@@ -71,13 +76,12 @@ def update_spot(spot_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-# DELETE - Remove a parking spot
+# delete a parking spot
 @app.route('/spots/<int:spot_id>', methods=['DELETE'])
 def delete_spot(spot_id):
     try:
         conn = get_conn()
-        cur  = conn.cursor()
+        cur = conn.cursor()
         cur.execute("DELETE FROM ParkingSpot WHERE SpotID=%s;", (spot_id,))
         conn.commit()
         cur.close()
@@ -85,7 +89,6 @@ def delete_spot(spot_id):
         return jsonify({"message": "Deleted successfully"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
