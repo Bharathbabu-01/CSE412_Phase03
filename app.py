@@ -9,7 +9,7 @@ CORS(app)
 db_host = "localhost"
 db_name = "parkup_db"
 db_user = "postgres"
-db_pass = "------------- Enter Your Password Here, Same Password as Your PG Admin for Testing It -------------"
+db_pass = "------------ Enter Your Password Here, Same Password as Your PG Admin for Testing It ------------"
 db_port = 5432
 
 def get_conn():
