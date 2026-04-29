@@ -167,6 +167,24 @@
     <div id="deleteResult"></div>
   </div>
 
+  <hr>
+
+<h2>Available Spots (View)</h2>
+<button onclick="loadAvailable()">Load Available Spots</button>
+<table>
+  <thead>
+    <tr>
+      <th>SpotID</th>
+      <th>SpotLabel</th>
+      <th>SpotType</th>
+      <th>LotName</th>
+    </tr>
+  </thead>
+  <tbody id="availableList">
+    <tr><td colspan="4">Click button to load</td></tr>
+  </tbody>
+</table>
+
 <script>
   var url = "http://127.0.0.1:5000";
 
@@ -299,6 +317,20 @@
       }
     });
   }
+
+function loadAvailable() {
+    fetch(url + "/available")
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        var tbody = document.getElementById("availableList");
+        var html = "";
+        for (var i = 0; i < data.length; i++) {
+            var s = data[i];
+            html += "<tr><td>" + s.spotid + "</td><td>" + s.spotlabel + "</td><td>" + s.spottype + "</td><td>" + s.lotname + "</td></tr>";
+        }
+        tbody.innerHTML = html;
+    });
+}
 
 </script>
 
