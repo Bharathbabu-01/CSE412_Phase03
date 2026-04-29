@@ -89,6 +89,20 @@ def delete_spot(spot_id):
         return jsonify({"message": "Deleted successfully"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+# get available spots using view
+@app.route('/available', methods=['GET'])
+def get_available():
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM AvailableSpots;")
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    result = []
+    for r in rows:
+        result.append({"spotid": r[0], "spotlabel": r[1], "spottype": r[2], "lotname": r[3]})
+    return jsonify(result)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
